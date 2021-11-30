@@ -7,19 +7,16 @@
 
 import UIKit
 import AVKit
+import Vision
 
-class ViewController:  UIViewController, AVCapturePhotoCaptureDelegate {
-    private let photoOutput = AVCapturePhotoOutput()
+class ViewController:  UIViewController {
+    private var videoOutput = AVCaptureVideoDataOutput()
+    private var videoDataOutputQueue: DispatchQueue?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         openCamera()
-    }
-    
-    
-    // MARK: - Private Methods
-    private func setupUI() {
-        
+        videoOutput.setSampleBufferDelegate(self, queue: videoDataOutputQueue)
     }
     
     private func openCamera() {
@@ -57,27 +54,28 @@ class ViewController:  UIViewController, AVCapturePhotoCaptureDelegate {
     private func setupCaptureSession() {
         let captureSession = AVCaptureSession()
         
-        if let captureDevice = AVCaptureDevice.default(for: AVMediaType.video) {
+        if let captureDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) {
             do {
                 let input = try AVCaptureDeviceInput(device: captureDevice)
                 if captureSession.canAddInput(input) {
                     captureSession.addInput(input)
                 }
+                self.configureVideoDataOutput(for: input.device, captureSession: captureSession)
             } catch let error {
                 print("Failed to set input device with error: \(error)")
             }
             
-            if captureSession.canAddOutput(photoOutput) {
-                captureSession.addOutput(photoOutput)
+            if captureSession.canAddOutput(videoOutput) {
+                captureSession.addOutput(videoOutput)
             }
-            
+             
             let cameraLayer = AVCaptureVideoPreviewLayer(session: captureSession)
             cameraLayer.frame = self.view.frame
             cameraLayer.videoGravity = .resizeAspectFill
             self.view.layer.addSublayer(cameraLayer)
             
             captureSession.startRunning()
-            self.setupUI()
+            
         }
     }
     
@@ -87,6 +85,38 @@ class ViewController:  UIViewController, AVCapturePhotoCaptureDelegate {
         }
     }
     
+    fileprivate func configureVideoDataOutput(for inputDevice: AVCaptureDevice, captureSession: AVCaptureSession) {
+        let videoDataOutput = AVCaptureVideoDataOutput()
+        videoDataOutput.alwaysDiscardsLateVideoFrames = true
+        
+        // Create a serial dispatch queue used for the sample buffer delegate as well as when a still image is captured.
+        // A serial dispatch queue must be used to guarantee that video frames will be delivered in order.
+        let videoDataOutputQueue = DispatchQueue(label: "com.example.apple-samplecode.VisionFaceTrack")
+        videoDataOutput.setSampleBufferDelegate(self, queue: videoDataOutputQueue)
+        
+        if captureSession.canAddOutput(videoDataOutput) {
+            captureSession.addOutput(videoDataOutput)
+        }
+        
+        videoDataOutput.connection(with: .video)?.isEnabled = true
+        
+        if let captureConnection = videoDataOutput.connection(with: AVMediaType.video) {
+            if captureConnection.isCameraIntrinsicMatrixDeliverySupported {
+                captureConnection.isCameraIntrinsicMatrixDeliveryEnabled = true
+            }
+        }
+        
+        self.videoOutput = videoDataOutput
+        self.videoDataOutputQueue = videoDataOutputQueue
+    }
+    
     
 }
 
+extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        print("output", output)
+        print("sampleBuffer", sampleBuffer)
+        print("connection", connection)
+    }
+}
