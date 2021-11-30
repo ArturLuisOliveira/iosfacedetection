@@ -68,7 +68,7 @@ class ViewController:  UIViewController {
             if captureSession.canAddOutput(videoOutput) {
                 captureSession.addOutput(videoOutput)
             }
-             
+            
             let cameraLayer = AVCaptureVideoPreviewLayer(session: captureSession)
             cameraLayer.frame = self.view.frame
             cameraLayer.videoGravity = .resizeAspectFill
@@ -110,13 +110,14 @@ class ViewController:  UIViewController {
         self.videoDataOutputQueue = videoDataOutputQueue
     }
     
-    
 }
 
 extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        print("output", output)
-        print("sampleBuffer", sampleBuffer)
-        print("connection", connection)
+        guard let pixelBuffer: CVPixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        
+        try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([VNDetectFaceRectanglesRequest(completionHandler: {(req,err) in
+            print(req.results)
+        })])
     }
 }
