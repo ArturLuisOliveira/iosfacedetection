@@ -12,11 +12,14 @@ import Vision
 class ViewController:  UIViewController {
     private var videoOutput = AVCaptureVideoDataOutput()
     private var videoDataOutputQueue: DispatchQueue?
+    private var rectangle = CGRect()
+    private var clownView: UIView = UIView()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         openCamera()
         videoOutput.setSampleBufferDelegate(self, queue: videoDataOutputQueue)
+        self.view.addSubview(self.clownView)
     }
     
     private func openCamera() {
@@ -116,8 +119,35 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer: CVPixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
-        try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([VNDetectFaceRectanglesRequest(completionHandler: {(req,err) in
-            print(req.results)
+        try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer,orientation: .upMirrored, options: [:]).perform([VNDetectFaceRectanglesRequest(completionHandler: {(req,err) in
+            if err != nil {
+                print("Error")
+                return
+            }
+            guard let results = req.results as? [VNFaceObservation] else { return }
+            DispatchQueue.main.async {
+                self.clownView.removeFromSuperview()
+                
+            }
+            results.forEach{result in
+                DispatchQueue.main.async {
+                    let w = result.boundingBox.size.width * UIScreen.main.bounds.width
+                    let h = result.boundingBox.size.height * UIScreen.main.bounds.height
+                    let x = result.boundingBox.origin.x * UIScreen.main.bounds.minX
+                    let y = result.boundingBox.origin.y * UIScreen.main.bounds.minY
+                    print(w,h,x,y)
+                   
+                    let clown = UIImageView(image: UIImage(named: "clown"))
+                    self.clownView.addSubview(clown)
+                    // Set UIView background color.
+                    self.clownView.removeFromSuperview()
+                    self.view.addSubview(self.clownView)
+                    // Add above UIView object as the main view's subview.
+                    
+                    
+                }
+            }
+            
         })])
     }
 }
