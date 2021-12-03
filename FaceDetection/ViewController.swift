@@ -15,27 +15,26 @@ class ViewController:  UIViewController {
     private var rectangle = CGRect()
     private var clownView: UIImageView = UIImageView(image: UIImage(named: "clown"))
     
-    private var aspectRatio: Double = 0
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         openCamera()
-        videoOutput.setSampleBufferDelegate(self, queue: videoDataOutputQueue)
-        aspectRatio = clownView.bounds.width / clownView.bounds.height
-        self.view.addSubview(self.clownView)
+        
     }
     
     private func openCamera() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized: // the user has already authorized to access the camera.
             self.setupCaptureSession()
+            self.view.addSubview(self.clownView)
             
         case .notDetermined: // the user has not yet asked for camera access.
             AVCaptureDevice.requestAccess(for: .video) { (granted) in
                 if granted { // if user has granted to access the camera.
                     print("the user has granted to access the camera")
+                    
                     DispatchQueue.main.async {
                         self.setupCaptureSession()
+                        self.view.addSubview(self.clownView)
                     }
                 } else {
                     print("the user has not granted to access the camera")
