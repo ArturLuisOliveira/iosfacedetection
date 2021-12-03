@@ -124,27 +124,26 @@ extension ViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         
         try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .down, options: [:]).perform([VNDetectFaceRectanglesRequest(completionHandler: {(req,err) in
             if err != nil {
-                print("Error")
                 return
             }
-            guard let results = req.results as? [VNFaceObservation] else { return }
-            
+            guard let results = req.results as? [VNFaceObservation] else {
+           
+                return }
+            if results.count < 1 {
+                DispatchQueue.main.async {
+                    self.clownView.frame = CGRect(x: 0, y: 0, width: 0, height: 0)
+                }
+            }
             results.forEach{result in
                 DispatchQueue.main.async {
-                    
-                    
                     
                     let w = 100.0
                     let h = 100.0
                     let x = self.view.frame.width / 100 * 100 * (1 - result.boundingBox.origin.x)
                     let y = result.boundingBox.origin.y * self.view.frame.height
-                    print(w,h,x,y)
                     self.clownView.frame = CGRect(x: y, y: x, width: w, height: h)
-                    
-                    
                 }
             }
-            
         })])
     }
 }
